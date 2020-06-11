@@ -1,0 +1,23 @@
+trigger:
+  branches:
+    include:
+    - master
+    - 'validate/*'
+    - 'release/*'
+  paths:
+    exclude:
+    - doc/
+    - '*.md'
+    - .vscode/
+    - .github/
+
+variables:
+  TreatWarningsAsErrors: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  BuildConfiguration: Release
+  codecov_token: 0000000000000 # Get a new one from https://codecov.io/
+  ci_feed: CI # Azure Artifacts feed name
+  NUGET_PACKAGES: $(Agent.TempDirectory)/.nuget/packages
+
+jobs:
+- template: azure-pipelines/build.yml
