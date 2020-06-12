@@ -90,6 +90,14 @@ namespace Rixian.CloudEvents
         public string? DataContentType { get; set; }
 
         /// <summary>
+        /// Gets or sets the undefined extension attributes. Optional.
+        /// </summary>
+        [JsonExtensionData]
+#pragma warning disable CA2227 // Collection properties should be read only
+        public Dictionary<string, JToken>? ExtensionAttributes { get; set; }
+#pragma warning restore CA2227 // Collection properties should be read only
+
+        /// <summary>
         /// Validates that a given JSON string is a cloud event.
         /// </summary>
         /// <param name="json">The JSON to validate.</param>

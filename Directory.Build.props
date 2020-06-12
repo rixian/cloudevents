@@ -38,6 +38,7 @@
 
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)icon.png" Pack="true" PackagePath="\"/>
+    <SourceRoot Include="$(MSBuildThisFileDirectory)/"/>
   </ItemGroup>
 
   <ItemGroup>
