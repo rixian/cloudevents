@@ -6,15 +6,15 @@ namespace Rixian.CloudEvents
     using System;
     using System.Collections.Generic;
     using System.IO;
-    using System.Net.Mime;
-    using System.Text.Json;
-    using System.Text.Json.Serialization;
     using System.Text.RegularExpressions;
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Converters;
+    using Newtonsoft.Json.Linq;
 
     /// <summary>
     /// A basic CloudEvent.
     /// </summary>
-    //[JsonConverter(typeof(CloudEventJsonConverter))]
+    [JsonConverter(typeof(CloudEventJsonConverter))]
     public class CloudEvent : ICloudEvent
     {
         private const string RFC3339RegexPattern = @"^([0-9]+)-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])[Tt]([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(\.[0-9]+)?(([Zz])|([\+|\-]([01][0-9]|2[0-3]):[0-5][0-9]))$";
@@ -24,6 +24,12 @@ namespace Rixian.CloudEvents
         // See: https://stackoverflow.com/a/475217
         private const string Base64RegexPattern = @"^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$";
 
+        private const string JsonMimeType = "application/json";
+
+        private const string PlainTextMimeType = "text/plain";
+
+        private const string OctetStreamMimeType = "application/octet-stream";
+
         private static Regex rfc3339Regex = new Regex(RFC3339RegexPattern);
         private static Regex rfc2046Regex = new Regex(RFC2046RegexPattern);
         private static Regex base64Regex = new Regex(Base64RegexPattern);
@@ -31,59 +37,56 @@ namespace Rixian.CloudEvents
         /// <summary>
         /// Gets or sets the unique id of this cloud event. Required.
         /// </summary>
-        // *** [JsonRequired]
-        [JsonPropertyName("id")]
+        [JsonRequired]
+        [JsonProperty("id", Order = int.MinValue)]
         public string? Id { get; set; }
 
         /// <summary>
         /// Gets or sets the type of this cloud event. Required.
         /// </summary>
-        // *** [JsonRequired]
-        [JsonPropertyName("type")]
+        [JsonRequired]
+        [JsonProperty("type", Order = int.MinValue + 1)]
         public string? Type { get; set; }
 
 #pragma warning disable CA1822 // Mark members as static
         /// <summary>
         /// Gets the specification version of this cloud event. Required.
         /// </summary>
-        // *** [JsonRequired]
-        [JsonPropertyName("specversion")]
+        [JsonRequired]
+        [JsonProperty("specversion", Order = int.MinValue + 2)]
         public string SpecVersion => "1.0";
 #pragma warning restore CA1822 // Mark members as static
 
         /// <summary>
         /// Gets or sets the source of this cloud event. Required.
         /// </summary>
-        // *** [JsonRequired]
-        [JsonPropertyName("source")]
+        [JsonRequired]
+        [JsonProperty("source", Order = int.MinValue + 3)]
         public Uri? Source { get; set; }
 
         /// <summary>
         /// Gets or sets the time of this cloud event serialized according to RFC 3339. Optional.
         /// </summary>
-        [JsonPropertyName("time")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        [JsonConverter(typeof(IsoDateTimeConverter))]
+        [JsonProperty("time", NullValueHandling = NullValueHandling.Ignore, DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate, Order = int.MinValue + 4)]
         public DateTimeOffset? Time { get; set; }
 
         /// <summary>
         /// Gets or sets the schema url of this cloud event. Optional.
         /// </summary>
-        [JsonPropertyName("dataschema")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        [JsonProperty("dataschema", NullValueHandling = NullValueHandling.Ignore, DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate, Order = int.MinValue + 5)]
         public Uri? DataSchema { get; set; }
 
         /// <summary>
         /// Gets or sets the subject of this cloud event. Optional.
         /// </summary>
-        [JsonPropertyName("subject")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        [JsonProperty("subject", NullValueHandling = NullValueHandling.Ignore, DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate, Order = int.MinValue + 6)]
         public string? Subject { get; set; }
 
         /// <summary>
         /// Gets or sets the content type of this cloud event. Optional.
         /// </summary>
-        [JsonPropertyName("datacontenttype")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        [JsonProperty("datacontenttype", NullValueHandling = NullValueHandling.Ignore, DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate, Order = int.MinValue + 6)]
         public string? DataContentType { get; set; }
 
         /// <summary>
@@ -91,7 +94,7 @@ namespace Rixian.CloudEvents
         /// </summary>
         [JsonExtensionData]
 #pragma warning disable CA2227 // Collection properties should be read only
-        public IDictionary<string, JsonElement>? ExtensionAttributes { get; set; }
+        public IDictionary<string, JToken?>? ExtensionAttributes { get; set; }
 #pragma warning restore CA2227 // Collection properties should be read only
 
         /// <summary>
@@ -102,11 +105,11 @@ namespace Rixian.CloudEvents
         public static bool ValidateJson(string json) => ValidateJsonDetailed(json).Item1;
 
         /// <summary>
-        /// Validates that a given JsonElement is a cloud event.
+        /// Validates that a given JObject is a cloud event.
         /// </summary>
-        /// <param name="jobj">The JsonElement to validate.</param>
+        /// <param name="jobj">The JObject to validate.</param>
         /// <returns>True if the string is a valid cloud event, otherwise false.</returns>
-        public static bool ValidateJson(JsonElement jobj) => ValidateJsonDetailed(jobj).Item1;
+        public static bool ValidateJson(JObject jobj) => ValidateJsonDetailed(jobj).Item1;
 
         /// <summary>
         /// Validates that a given JSON string is a cloud event.
@@ -117,7 +120,13 @@ namespace Rixian.CloudEvents
         {
             try
             {
-                return ValidateJsonDetailed(JsonDocument.Parse(json).RootElement);
+                var obj = JsonConvert.DeserializeObject(
+                    json,
+                    new JsonSerializerSettings
+                    {
+                        DateParseHandling = DateParseHandling.None,
+                    });
+                return ValidateJsonDetailed(JObject.FromObject(obj));
             }
 #pragma warning disable CA1031 // Do not catch general exception types
             catch
@@ -128,27 +137,46 @@ namespace Rixian.CloudEvents
         }
 
         /// <summary>
-        /// Validates that a given JsonElement is a cloud event.
+        /// Validates that a given JObject is a cloud event.
         /// </summary>
-        /// <param name="jobj">The JsonElement to validate.</param>
-        /// <returns>A tuple containing a flag indicating if the JsonElement is a valid cloud event, and a list of all errors.</returns>
-        public static Tuple<bool, IReadOnlyList<string>> ValidateJsonDetailed(JsonElement jobj)
+        /// <param name="jobj">The JObject to validate.</param>
+        /// <returns>A tuple containing a flag indicating if the JObject is a valid cloud event, and a list of all errors.</returns>
+        public static Tuple<bool, IReadOnlyList<string>> ValidateJsonDetailed(JObject jobj)
         {
+            if (jobj == null)
+            {
+                throw new ArgumentNullException(nameof(jobj));
+            }
+
             var errors = new List<string>();
             try
             {
                 bool result = true;
 
-                var containsId = jobj.TryGetProperty("id", out JsonElement idProp);
-                var containsType = jobj.TryGetProperty("type", out JsonElement typeProp);
-                var containsSpecVersion = jobj.TryGetProperty("specversion", out JsonElement specVersionProp);
-                var containsSource = jobj.TryGetProperty("source", out JsonElement sourceProp);
+                var containsId = jobj.ContainsKey("id");
+                var containsType = jobj.ContainsKey("type");
+                var containsSpecVersion = jobj.ContainsKey("specversion");
+                var containsSource = jobj.ContainsKey("source");
 
-                var containsSubject = jobj.TryGetProperty("subject", out JsonElement subjectProp);
-                var containsTime = jobj.TryGetProperty("time", out JsonElement timeProp);
-                var containsDataSchema = jobj.TryGetProperty("dataschema", out JsonElement dataSchemaProp);
-                var containsData = jobj.TryGetProperty("data", out JsonElement dataProp);
-                var containsDataContentType = jobj.TryGetProperty("datacontenttype", out JsonElement dataContentTypeProp);
+                var containsSubject = jobj.ContainsKey("subject");
+                var containsTime = jobj.ContainsKey("time");
+                var containsSchemaUrl = jobj.ContainsKey("dataschema");
+                var containsData = jobj.ContainsKey("data");
+                var containsContentType = jobj.ContainsKey("datacontenttype");
+
+                // var containsDataContentEncoding = jobj.ContainsKey("datacontentencoding");
+                var id = jobj["id"]?.ToString();
+                var type = jobj["type"]?.ToString();
+                var specVersion = jobj["specversion"]?.ToString();
+                var source = jobj["source"]?.ToString();
+
+                var subject = jobj["subject"]?.ToString();
+                var time = jobj["time"]?.ToString();
+                var dataSchema = jobj["dataschema"]?.ToString();
+                var data = jobj["data"]?.ToString();
+                var dataContentType = jobj["datacontenttype"]?.ToString();
+
+                // var dataContentEncoding = jobj["datacontentencoding"]?.ToString();
 
                 // [id]
                 // Required, non-empty string
@@ -157,12 +185,12 @@ namespace Rixian.CloudEvents
                     result = false;
                     errors.Add("Required field 'id' is missing.");
                 }
-                else if (idProp.ValueKind == JsonValueKind.Null)
+                else if (id == null)
                 {
                     result = false;
                     errors.Add("Required field 'id' is null.");
                 }
-                else if (string.IsNullOrWhiteSpace(idProp.GetString()))
+                else if (string.IsNullOrWhiteSpace(id))
                 {
                     result = false;
                     errors.Add("Required field 'id' must contain a value.");
@@ -175,12 +203,12 @@ namespace Rixian.CloudEvents
                     result = false;
                     errors.Add("Required field 'type' is missing.");
                 }
-                else if (typeProp.ValueKind == JsonValueKind.Null)
+                else if (type == null)
                 {
                     result = false;
                     errors.Add("Required field 'type' is null.");
                 }
-                else if (string.IsNullOrWhiteSpace(typeProp.GetString()))
+                else if (string.IsNullOrWhiteSpace(type))
                 {
                     result = false;
                     errors.Add("Required field 'type' must contain a value.");
@@ -193,17 +221,17 @@ namespace Rixian.CloudEvents
                     result = false;
                     errors.Add("Required field 'specversion' is missing.");
                 }
-                else if (specVersionProp.ValueKind == JsonValueKind.Null)
+                else if (specVersion == null)
                 {
                     result = false;
                     errors.Add("Required field 'specversion' is null.");
                 }
-                else if (string.IsNullOrWhiteSpace(specVersionProp.GetString()))
+                else if (string.IsNullOrWhiteSpace(specVersion))
                 {
                     result = false;
                     errors.Add("Required field 'specversion' must contain a value.");
                 }
-                else if (string.Equals(specVersionProp.GetString(), "1.0", StringComparison.OrdinalIgnoreCase) == false)
+                else if (string.Equals(specVersion, "1.0", StringComparison.OrdinalIgnoreCase) == false)
                 {
                     result = false;
                     errors.Add("Required field 'specversion' must contain the value '1.0'");
@@ -216,17 +244,17 @@ namespace Rixian.CloudEvents
                     result = false;
                     errors.Add("Required field 'source' is missing.");
                 }
-                else if (sourceProp.ValueKind == JsonValueKind.Null)
+                else if (source == null)
                 {
                     result = false;
                     errors.Add("Required field 'source' is null.");
                 }
-                else if (string.IsNullOrWhiteSpace(sourceProp.GetString()))
+                else if (string.IsNullOrWhiteSpace(source))
                 {
                     result = false;
                     errors.Add("Required field 'source' must contain a value.");
                 }
-                else if (Uri.TryCreate(sourceProp.GetString(), UriKind.RelativeOrAbsolute, out Uri sourceUri) == false)
+                else if (Uri.TryCreate(source, UriKind.RelativeOrAbsolute, out Uri sourceUri) == false)
                 {
                     result = false;
                     errors.Add("Required field 'source' must contain a valid Uri.");
@@ -236,12 +264,12 @@ namespace Rixian.CloudEvents
                 // Optional, non-empty string
                 if (containsSubject)
                 {
-                    if (subjectProp.ValueKind == JsonValueKind.Null)
+                    if (subject == null)
                     {
                         result = false;
                         errors.Add("Optional field 'subject' is null.");
                     }
-                    else if (string.IsNullOrWhiteSpace(subjectProp.GetString()))
+                    else if (string.IsNullOrWhiteSpace(subject))
                     {
                         result = false;
                         errors.Add("Optional field 'subject' is present and therefore must contain a value.");
@@ -252,17 +280,17 @@ namespace Rixian.CloudEvents
                 // Optional, non-empty string
                 if (containsTime)
                 {
-                    if (timeProp.ValueKind == JsonValueKind.Null)
+                    if (time == null)
                     {
                         result = false;
                         errors.Add("Optional field 'time' is null.");
                     }
-                    else if (string.IsNullOrWhiteSpace(timeProp.GetString()))
+                    else if (string.IsNullOrWhiteSpace(time))
                     {
                         result = false;
                         errors.Add("Optional field 'time' is present and therefore must contain a value.");
                     }
-                    else if (rfc3339Regex.IsMatch(timeProp.GetString()) == false)
+                    else if (rfc3339Regex.IsMatch(time) == false)
                     {
                         result = false;
                         errors.Add("Optional field 'time' must adhere to the format specified in RFC 3339.");
@@ -271,19 +299,19 @@ namespace Rixian.CloudEvents
 
                 // [dataschema]
                 // Optional, non-null Uri
-                if (containsDataSchema)
+                if (containsSchemaUrl)
                 {
-                    if (dataSchemaProp.ValueKind == JsonValueKind.Null)
+                    if (dataSchema == null)
                     {
                         result = false;
                         errors.Add("Optional field 'dataschema' is null.");
                     }
-                    else if (string.IsNullOrWhiteSpace(dataSchemaProp.GetString()))
+                    else if (string.IsNullOrWhiteSpace(dataSchema))
                     {
                         result = false;
                         errors.Add("Optional field 'dataschema' is present and therefore must contain a value.");
                     }
-                    else if (Uri.TryCreate(dataSchemaProp.GetString(), UriKind.RelativeOrAbsolute, out Uri schemaUri) == false)
+                    else if (Uri.TryCreate(dataSchema, UriKind.RelativeOrAbsolute, out Uri schemaUri) == false)
                     {
                         result = false;
                         errors.Add("Optional field 'dataschema' must contain a valid Uri.");
@@ -292,19 +320,19 @@ namespace Rixian.CloudEvents
 
                 // [datacontenttype]
                 // Optional, non-empty string
-                if (containsDataContentType)
+                if (containsContentType)
                 {
-                    if (dataContentTypeProp.ValueKind == JsonValueKind.Null)
+                    if (dataContentType == null)
                     {
                         result = false;
                         errors.Add("Optional field 'datacontenttype' is null.");
                     }
-                    else if (string.IsNullOrWhiteSpace(dataContentTypeProp.GetString()))
+                    else if (string.IsNullOrWhiteSpace(dataContentType))
                     {
                         result = false;
                         errors.Add("Optional field 'datacontenttype' must contain a value.");
                     }
-                    else if (rfc2046Regex.IsMatch(dataContentTypeProp.GetString()) == false)
+                    else if (rfc2046Regex.IsMatch(dataContentType) == false)
                     {
                         result = false;
                         errors.Add("Optional field 'datacontenttype' must adhere to the format specified in RFC 2046.");
@@ -332,12 +360,12 @@ namespace Rixian.CloudEvents
                 // Optional, non-empty string
                 if (containsData)
                 {
-                    if (dataProp.ValueKind == JsonValueKind.Null)
+                    if (data == null)
                     {
                         result = false;
                         errors.Add("Optional field 'data' is null.");
                     }
-                    else if (string.IsNullOrWhiteSpace(dataProp.GetString()))
+                    else if (string.IsNullOrWhiteSpace(data))
                     {
                         result = false;
                         errors.Add("Optional field 'data' must contain a value.");
@@ -372,22 +400,122 @@ namespace Rixian.CloudEvents
                 throw new ArgumentOutOfRangeException(nameof(json), Properties.Resources.NullOrEmptyStringExceptionMessage);
             }
 
-            var doc = JsonDocument.Parse(json);
-            return Deserialize(doc.RootElement);
+            using (var sr = new StringReader(json))
+            using (var jr = new JsonTextReader(sr))
+            {
+                var jobj = JObject.Parse(json);
+                return Deserialize(jobj);
+            }
         }
 
         /// <summary>
-        /// Deserializes a JsonElement into a cloud event.
+        /// Deserializes a JObject into a cloud event.
         /// </summary>
-        /// <param name="jobj">The JsonElement to deserialize.</param>
+        /// <param name="jobj">The JObject to deserialize.</param>
         /// <returns>A cloud event.</returns>
-        public static CloudEvent Deserialize(JsonElement jobj)
+        public static CloudEvent Deserialize(JObject jobj)
         {
-            if (jobj.TryGetProperty("specversion", out JsonElement specversion))
+            if (jobj == null)
+            {
+                throw new ArgumentNullException(nameof(jobj));
+            }
+
+            if (jobj.TryGetValue("specversion", out JToken specversion))
             {
                 if (string.Equals(specversion.ToString(), "1.0", StringComparison.OrdinalIgnoreCase))
                 {
                     return DeserializeLatest(jobj);
+                }
+                else if (string.Equals(specversion.ToString(), "0.2", StringComparison.OrdinalIgnoreCase))
+                {
+#pragma warning disable CS0618 // Type or member is obsolete
+                    CloudEventV0_2? cloudEvent02 = CloudEventV0_2.Deserialize(jobj);
+
+                    CloudEvent? cloudEvent = null;
+                    switch (cloudEvent02)
+                    {
+                        case BinaryCloudEventV0_2 bce02:
+                            cloudEvent = new BinaryCloudEvent
+                            {
+                                Data = bce02.Data,
+                            };
+                            break;
+                        case JsonCloudEventV0_2 jce02:
+                            cloudEvent = new JsonCloudEvent
+                            {
+                                Data = jce02.Data,
+                            };
+                            break;
+                        case StringCloudEventV0_2 sce02:
+                            cloudEvent = new StringCloudEvent
+                            {
+                                Data = sce02.Data,
+                            };
+                            break;
+                        default:
+                            cloudEvent = new CloudEvent();
+                            break;
+                    }
+#pragma warning restore CS0618 // Type or member is obsolete
+
+                    cloudEvent.Id = cloudEvent02.Id;
+                    cloudEvent.DataContentType = cloudEvent02.ContentType;
+                    cloudEvent.DataSchema = cloudEvent02.SchemaUrl;
+                    cloudEvent.Source = cloudEvent02.Source;
+                    cloudEvent.Time = cloudEvent02.Time;
+                    cloudEvent.Type = cloudEvent02.Type;
+                    cloudEvent.Subject = cloudEvent02.ExtensionAttributes?.TryGetRemoveValue("subject")?.ToString();
+                    cloudEvent.ExtensionAttributes = cloudEvent02.ExtensionAttributes;
+
+                    return cloudEvent;
+                }
+            }
+
+            if (jobj.TryGetValue("cloudEventsVersion", out JToken cloudEventsVersion))
+            {
+                if (string.Equals(cloudEventsVersion.ToString(), "0.1", StringComparison.OrdinalIgnoreCase))
+                {
+#pragma warning disable CS0618 // Type or member is obsolete
+                    CloudEventV0_1? cloudEvent01 = CloudEventV0_1.Deserialize(jobj);
+
+                    CloudEvent? cloudEvent = null;
+                    switch (cloudEvent01)
+                    {
+                        case BinaryCloudEventV0_1 bce01:
+                            cloudEvent = new BinaryCloudEvent
+                            {
+                                Data = bce01.Data,
+                            };
+                            break;
+                        case JsonCloudEventV0_1 jce01:
+                            cloudEvent = new JsonCloudEvent
+                            {
+                                Data = jce01.Data,
+                            };
+                            break;
+                        case StringCloudEventV0_1 sce01:
+                            cloudEvent = new StringCloudEvent
+                            {
+                                Data = sce01.Data,
+                            };
+                            break;
+                        default:
+                            cloudEvent = new CloudEvent();
+                            break;
+                    }
+#pragma warning restore CS0618 // Type or member is obsolete
+
+                    cloudEvent.Id = cloudEvent01.EventId;
+                    cloudEvent.DataContentType = cloudEvent01.ContentType;
+                    cloudEvent.DataSchema = cloudEvent01.SchemaUrl;
+                    cloudEvent.Source = cloudEvent01.Source;
+                    cloudEvent.Time = cloudEvent01.EventTime;
+                    cloudEvent.Type = cloudEvent01.EventType;
+                    cloudEvent.ExtensionAttributes = cloudEvent01.Extensions?.AsDictionary();
+                    cloudEvent.ExtensionAttributes?.AddValue("eventTypeVersion", cloudEvent01.EventTypeVersion);
+                    cloudEvent.Subject = cloudEvent.ExtensionAttributes?.TryGetRemoveValue("subject")?.ToString();
+
+                    return cloudEvent;
                 }
             }
 
@@ -412,22 +540,43 @@ namespace Rixian.CloudEvents
                 throw new ArgumentOutOfRangeException(nameof(json), Properties.Resources.NullOrEmptyStringExceptionMessage);
             }
 
-            var doc = JsonDocument.Parse(json);
-            return DeserializeAny(doc.RootElement);
+            var jobj = JObject.Parse(json);
+            return DeserializeAny(jobj);
         }
 
         /// <summary>
-        /// Deserializes a JsonElement into a cloud event.
+        /// Deserializes a JObject into a cloud event.
         /// </summary>
-        /// <param name="jobj">The JsonElement to deserialize.</param>
+        /// <param name="jobj">The JObject to deserialize.</param>
         /// <returns>A cloud event.</returns>
-        public static ICloudEvent DeserializeAny(JsonElement jobj)
+        public static ICloudEvent DeserializeAny(JObject jobj)
         {
-            if (jobj.TryGetProperty("specversion", out JsonElement specversion))
+            if (jobj == null)
+            {
+                throw new ArgumentNullException(nameof(jobj));
+            }
+
+            if (jobj.TryGetValue("specversion", out JToken specversion))
             {
                 if (string.Equals(specversion.ToString(), "1.0", StringComparison.OrdinalIgnoreCase))
                 {
                     return DeserializeLatest(jobj);
+                }
+                else if (string.Equals(specversion.ToString(), "0.2", StringComparison.OrdinalIgnoreCase))
+                {
+#pragma warning disable CS0618 // Type or member is obsolete
+                    return CloudEventV0_2.Deserialize(jobj);
+#pragma warning restore CS0618 // Type or member is obsolete
+                }
+            }
+
+            if (jobj.TryGetValue("cloudEventsVersion", out JToken cloudEventsVersion))
+            {
+                if (string.Equals(cloudEventsVersion.ToString(), "0.1", StringComparison.OrdinalIgnoreCase))
+                {
+#pragma warning disable CS0618 // Type or member is obsolete
+                    return CloudEventV0_1.Deserialize(jobj);
+#pragma warning restore CS0618 // Type or member is obsolete
                 }
             }
 
@@ -460,8 +609,8 @@ namespace Rixian.CloudEvents
         /// <param name="source">The event source.</param>
         /// <param name="data">The JSON data.</param>
         /// <returns>A JSON cloud event.</returns>
-        public static JsonCloudEvent CreateCloudEvent(string eventType, Uri source, JsonElement data) =>
-            CreateCloudEvent(eventType, source, data, MediaTypeNames.Application.Json, null);
+        public static JsonCloudEvent CreateCloudEvent(string eventType, Uri source, JToken data) =>
+            CreateCloudEvent(eventType, source, data, JsonMimeType, null);
 
         /// <summary>
         /// Creates a cloud event with a JSON data.
@@ -471,8 +620,8 @@ namespace Rixian.CloudEvents
         /// <param name="data">The JSON data.</param>
         /// <param name="dataSchema">The schema URL for this cloud event.</param>
         /// <returns>A JSON cloud event.</returns>
-        public static JsonCloudEvent CreateCloudEvent(string eventType, Uri source, JsonElement data, Uri? dataSchema) =>
-            CreateCloudEvent(eventType, source, data, MediaTypeNames.Application.Json, dataSchema);
+        public static JsonCloudEvent CreateCloudEvent(string eventType, Uri source, JToken data, Uri? dataSchema) =>
+            CreateCloudEvent(eventType, source, data, JsonMimeType, dataSchema);
 
         /// <summary>
         /// Creates a cloud event with a JSON data.
@@ -483,7 +632,7 @@ namespace Rixian.CloudEvents
         /// <param name="dataContentType">The content type of the JSON data.</param>
         /// <param name="dataSchema">The schema URL for this cloud event.</param>
         /// <returns>A JSON cloud event.</returns>
-        public static JsonCloudEvent CreateCloudEvent(string eventType, Uri source, JsonElement data, string? dataContentType, Uri? dataSchema)
+        public static JsonCloudEvent CreateCloudEvent(string eventType, Uri source, JToken data, string? dataContentType, Uri? dataSchema)
         {
             // Should there be some reasonable upper bound on the data size?
             return new JsonCloudEvent
@@ -506,7 +655,7 @@ namespace Rixian.CloudEvents
         /// <param name="data">The string data.</param>
         /// <returns>A string cloud event.</returns>
         public static StringCloudEvent CreateCloudEvent(string eventType, Uri source, string data) =>
-            CreateCloudEvent(eventType, source, data, MediaTypeNames.Text.Plain, null);
+            CreateCloudEvent(eventType, source, data, PlainTextMimeType, null);
 
         /// <summary>
         /// Creates a cloud event with a string data.
@@ -517,7 +666,7 @@ namespace Rixian.CloudEvents
         /// <param name="dataSchema">The schema URL for this cloud event.</param>
         /// <returns>A string cloud event.</returns>
         public static StringCloudEvent CreateCloudEvent(string eventType, Uri source, string data, Uri? dataSchema) =>
-            CreateCloudEvent(eventType, source, data, MediaTypeNames.Text.Plain, dataSchema);
+            CreateCloudEvent(eventType, source, data, PlainTextMimeType, dataSchema);
 
         /// <summary>
         /// Creates a cloud event with a string data.
@@ -551,7 +700,7 @@ namespace Rixian.CloudEvents
         /// <param name="data">The binary data.</param>
         /// <returns>A binary cloud event.</returns>
         public static BinaryCloudEvent CreateCloudEvent(string eventType, Uri source, byte[]? data) =>
-            CreateCloudEvent(eventType, source, data, MediaTypeNames.Application.Octet, null);
+            CreateCloudEvent(eventType, source, data, OctetStreamMimeType, null);
 
         /// <summary>
         /// Creates a cloud event with a binary data.
@@ -562,7 +711,7 @@ namespace Rixian.CloudEvents
         /// <param name="dataSchema">The schema URL for this cloud event.</param>
         /// <returns>A binary cloud event.</returns>
         public static BinaryCloudEvent CreateCloudEvent(string eventType, Uri source, byte[]? data, Uri? dataSchema) =>
-            CreateCloudEvent(eventType, source, data, MediaTypeNames.Application.Octet, dataSchema);
+            CreateCloudEvent(eventType, source, data, OctetStreamMimeType, dataSchema);
 
         /// <summary>
         /// Creates a cloud event with a binary data.
@@ -591,13 +740,18 @@ namespace Rixian.CloudEvents
         /// <summary>
         /// Gets the type of a raw JSON cloud event.
         /// </summary>
-        /// <param name="jobj">The <see cref="JsonElement"/> data.</param>
+        /// <param name="jobj">The <see cref="JObject"/> data.</param>
         /// <returns>The <see cref="Type"/> of the event.</returns>
-        internal static Type GetEventType(JsonElement jobj)
+        internal static Type GetEventType(JObject jobj)
         {
-            if (jobj.TryGetProperty("data", out JsonElement data))
+            if (jobj == null)
             {
-                var dataContentType = jobj.GetProperty("datacontenttype").GetString().Trim();
+                throw new ArgumentNullException(nameof(jobj));
+            }
+
+            if (jobj.ContainsKey("data"))
+            {
+                var dataContentType = jobj.Value<string>("datacontenttype")?.Trim();
 
                 // SPEC: Section 3.1 - Paragraph 3
                 // https://github.com/cloudevents/spec/blob/v0.1/json-format.md#31-special-handling-of-the-data-attribute
@@ -605,10 +759,10 @@ namespace Rixian.CloudEvents
                 {
                     return typeof(JsonCloudEvent);
                 }
-                else
+                else if (jobj.ContainsKey("data"))
                 {
-                    var dataString = data.GetString();
-                    if (base64Regex.IsMatch(dataString))
+                    var data = jobj["data"]?.ToString();
+                    if (base64Regex.IsMatch(data))
                     {
                         return typeof(BinaryCloudEvent);
                     }
@@ -622,11 +776,16 @@ namespace Rixian.CloudEvents
             return typeof(CloudEvent);
         }
 
-        private static CloudEvent DeserializeLatest(JsonElement jobj)
+        private static CloudEvent DeserializeLatest(JObject jobj)
         {
-            Type actualType = GetEventType(jobj);
+            if (jobj == null)
+            {
+                throw new ArgumentNullException(nameof(jobj));
+            }
 
-            var cloudEvent = JsonSerializer.Deserialize(jobj, actualType) as CloudEvent;
+            Type actualType = GetEventType(jobj);
+            var cloudEvent = (CloudEvent)Activator.CreateInstance(actualType);
+            JsonConvert.PopulateObject(jobj.ToString(), cloudEvent);
             return cloudEvent;
         }
     }

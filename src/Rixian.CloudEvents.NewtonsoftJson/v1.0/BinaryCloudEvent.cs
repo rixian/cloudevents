@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Rixian. All rights reserved.
 // Licensed under the Apache License, Version 2.0 license. See LICENSE file in the project root for full license information.
 
-using System.Text.Json.Serialization;
-
 namespace Rixian.CloudEvents
 {
+    using Newtonsoft.Json;
+
     /// <summary>
     /// A cloud event with binary data.
     /// </summary>
@@ -14,9 +14,8 @@ namespace Rixian.CloudEvents
         /// <summary>
         /// Gets or sets the binary payload.
         /// </summary>
-        [JsonPropertyName("data")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-        public byte[] Data { get; set; } = default!;
+        [JsonProperty("data", NullValueHandling = NullValueHandling.Ignore, DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate, Order = int.MinValue + 7)]
+        public byte[]? Data { get; set; }
 #pragma warning restore CA1819 // Properties should not return arrays
     }
 }

@@ -33,6 +33,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rixian.CloudEvents", "src\R
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rixian.CloudEvents.Tests", "test\Rixian.CloudEvents.Tests\Rixian.CloudEvents.Tests.csproj", "{A5FFCB3F-4560-4993-A908-FD4AB5FF2432}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rixian.CloudEvents.NewtonsoftJson", "src\Rixian.CloudEvents.NewtonsoftJson\Rixian.CloudEvents.NewtonsoftJson.csproj", "{E3CA9496-3DE7-415C-8AEF-662812578762}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rixian.CloudEvents.NewtonsoftJson.Tests", "test\Rixian.CloudEvents.NewtonsoftJson.Tests\Rixian.CloudEvents.NewtonsoftJson.Tests.csproj", "{3CAC793E-0A3F-4624-94EF-10AB381046A3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -47,6 +51,14 @@ Global
 		{A5FFCB3F-4560-4993-A908-FD4AB5FF2432}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A5FFCB3F-4560-4993-A908-FD4AB5FF2432}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A5FFCB3F-4560-4993-A908-FD4AB5FF2432}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E3CA9496-3DE7-415C-8AEF-662812578762}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E3CA9496-3DE7-415C-8AEF-662812578762}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E3CA9496-3DE7-415C-8AEF-662812578762}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E3CA9496-3DE7-415C-8AEF-662812578762}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3CAC793E-0A3F-4624-94EF-10AB381046A3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3CAC793E-0A3F-4624-94EF-10AB381046A3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3CAC793E-0A3F-4624-94EF-10AB381046A3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3CAC793E-0A3F-4624-94EF-10AB381046A3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -57,5 +69,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{894653C7-5123-4661-A4BF-228419AAC28C} = {9E154A29-1796-4B85-BD81-B6A385D8FF71}
 		{A5FFCB3F-4560-4993-A908-FD4AB5FF2432} = {36CCE840-6FE5-4DB9-A8D5-8CF3CB6D342A}
+		{E3CA9496-3DE7-415C-8AEF-662812578762} = {9E154A29-1796-4B85-BD81-B6A385D8FF71}
+		{3CAC793E-0A3F-4624-94EF-10AB381046A3} = {36CCE840-6FE5-4DB9-A8D5-8CF3CB6D342A}
 	EndGlobalSection
 EndGlobal

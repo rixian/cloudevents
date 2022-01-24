@@ -7,6 +7,8 @@ namespace Rixian.CloudEvents.Tests
     public enum TestSpecVersion
     {
         Unknown = 0,
+        V0_1,
+        V0_2,
         V1_0,
     }
 }

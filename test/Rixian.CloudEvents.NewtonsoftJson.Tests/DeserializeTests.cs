@@ -22,12 +22,26 @@ namespace Rixian.CloudEvents.Tests
                 return "./V10Tests/samples";
             }
 
+            if (version == TestSpecVersion.V0_2)
+            {
+                return "./V02Tests/samples";
+            }
+
+            if (version == TestSpecVersion.V0_1)
+            {
+                return "./V01Tests/samples";
+            }
+
             throw new ArgumentOutOfRangeException(nameof(version));
         }
 
         [Theory]
         [InlineData("json1.json", TestSpecVersion.V1_0)]
         [InlineData("json2.json", TestSpecVersion.V1_0)]
+        [InlineData("json1.json", TestSpecVersion.V0_2)]
+        [InlineData("json2.json", TestSpecVersion.V0_2)]
+        [InlineData("json1.json", TestSpecVersion.V0_1)]
+        [InlineData("json2.json", TestSpecVersion.V0_1)]
         public void TestJsonFiles(string fileName, TestSpecVersion specVersion)
         {
             string json = File.ReadAllText($@"{GetFolder(specVersion)}/json/{fileName}");
@@ -38,6 +52,8 @@ namespace Rixian.CloudEvents.Tests
 
         [Theory]
         [InlineData("string1.json", TestSpecVersion.V1_0)]
+        [InlineData("string1.json", TestSpecVersion.V0_2)]
+        [InlineData("string1.json", TestSpecVersion.V0_1)]
         public void TestStringFilesV02(string fileName, TestSpecVersion specVersion)
         {
             var json = File.ReadAllText($@"{GetFolder(specVersion)}/string/{fileName}");
@@ -52,6 +68,14 @@ namespace Rixian.CloudEvents.Tests
             if (version == TestSpecVersion.V1_0)
             {
                 cloudEvent.GetType().Should().BeAssignableTo<CloudEvent>();
+            }
+            else if (version == TestSpecVersion.V0_2)
+            {
+                cloudEvent.GetType().Should().BeAssignableTo<CloudEventV0_2>();
+            }
+            else if (version == TestSpecVersion.V0_1)
+            {
+                cloudEvent.GetType().Should().BeAssignableTo<CloudEventV0_1>();
             }
             else
             {

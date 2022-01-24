@@ -3,8 +3,8 @@
 
 namespace Rixian.CloudEvents
 {
-    using System.Text.Json;
-    using System.Text.Json.Serialization;
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
 
     /// <summary>
     /// A cloud event with JSON data.
@@ -14,9 +14,8 @@ namespace Rixian.CloudEvents
         /// <summary>
         /// Gets or sets the JSON payload.
         /// </summary>
-        // *** [JsonRequired]
-        [JsonPropertyName("data")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-        public JsonElement Data { get; set; }
+        [JsonRequired]
+        [JsonProperty("data", NullValueHandling = NullValueHandling.Ignore, DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate, Order = int.MinValue + 7)]
+        public JToken? Data { get; set; }
     }
 }

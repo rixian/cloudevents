@@ -2,11 +2,14 @@
 // Licensed under the Apache License, Version 2.0 license. See LICENSE file in the project root for full license information.
 
 #nullable disable
-namespace Rixian.CloudEvents.Tests
+namespace Rixian.CloudEvents.Tests.V10
 {
-    public enum TestSpecVersion
+    using System;
+    using System.Collections.Generic;
+    using System.Text;
+
+    public class TestCloudEvent : CloudEvent
     {
-        Unknown = 0,
-        V1_0,
+        public string Test { get; set; }
     }
 }

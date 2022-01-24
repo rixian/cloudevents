@@ -7,9 +7,10 @@ namespace Rixian.CloudEvents.Tests.V10
     using System;
     using System.IO;
     using System.Text;
-    using System.Text.Json;
     using System.Text.RegularExpressions;
     using FluentAssertions;
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
     using Xunit;
 
     public class DeserializeTests
@@ -41,17 +42,17 @@ namespace Rixian.CloudEvents.Tests.V10
             evnt.Type.Should().Be("com.example.someevent");
 
             JsonCloudEvent jsonEvnt = (JsonCloudEvent)evnt;
-            jsonEvnt.Data.Value.ValueKind.Should().Be(JsonValueKind.Object);
-            var data = jsonEvnt.Data.AsDictionary();
+            jsonEvnt.Data.Should().BeAssignableTo<JObject>();
+            JObject data = (JObject)jsonEvnt.Data;
 
             data.Should().ContainKey("appinfoA");
-            data["appinfoA"].Value.GetString().Should().Be("abc");
+            data["appinfoA"].Value<string>().Should().Be("abc");
 
             data.Should().ContainKey("appinfoB");
-            data["appinfoB"].Value.GetInt32().Should().Be(123);
+            data["appinfoB"].Value<int>().Should().Be(123);
 
             data.Should().ContainKey("appinfoC");
-            data["appinfoC"].Value.GetBoolean().Should().Be(true);
+            data["appinfoC"].Value<bool>().Should().Be(true);
         }
 
         [Fact]
@@ -70,23 +71,23 @@ namespace Rixian.CloudEvents.Tests.V10
             evnt.Type.Should().Be("com.example.someevent");
 
             evnt.ExtensionAttributes.Should().ContainKey("eventTypeVersion");
-            evnt.ExtensionAttributes["eventTypeVersion"].GetString().Should().Be("1.0");
+            evnt.ExtensionAttributes["eventTypeVersion"].Value<string>().Should().Be("1.0");
 
             evnt.ExtensionAttributes.Should().ContainKey("comExampleExtension");
-            evnt.ExtensionAttributes["comExampleExtension"].GetString().Should().Be("value");
+            evnt.ExtensionAttributes["comExampleExtension"].Value<string>().Should().Be("value");
 
             JsonCloudEvent jsonEvnt = (JsonCloudEvent)evnt;
-            jsonEvnt.Data.Value.ValueKind.Should().Be(JsonValueKind.Object);
-            var data = jsonEvnt.Data.AsDictionary();
+            jsonEvnt.Data.Should().BeAssignableTo<JObject>();
+            JObject data = (JObject)jsonEvnt.Data;
 
             data.Should().ContainKey("appinfoA");
-            data["appinfoA"].Value.GetString().Should().Be("abc");
+            data["appinfoA"].Value<string>().Should().Be("abc");
 
             data.Should().ContainKey("appinfoB");
-            data["appinfoB"].Value.GetInt32().Should().Be(123);
+            data["appinfoB"].Value<int>().Should().Be(123);
 
             data.Should().ContainKey("appinfoC");
-            data["appinfoC"].Value.GetBoolean().Should().Be(true);
+            data["appinfoC"].Value<bool>().Should().Be(true);
         }
 
         [Fact]
@@ -105,10 +106,10 @@ namespace Rixian.CloudEvents.Tests.V10
             evnt.Type.Should().Be("com.example.someevent");
 
             JsonCloudEvent jsonEvnt = (JsonCloudEvent)evnt;
-            jsonEvnt.Data.Value.ValueKind.Should().Be(JsonValueKind.Array);
-            var arrayLength = jsonEvnt.Data.Value.GetArrayLength();
+            jsonEvnt.Data.Should().BeAssignableTo<JArray>();
+            JArray data = (JArray)jsonEvnt.Data;
 
-            arrayLength.Should().Be(6);
+            data.Should().HaveCount(6);
         }
 
         [Fact]
@@ -127,16 +128,16 @@ namespace Rixian.CloudEvents.Tests.V10
             evnt.Type.Should().Be("com.example.someevent");
 
             evnt.ExtensionAttributes.Should().ContainKey("eventTypeVersion");
-            evnt.ExtensionAttributes["eventTypeVersion"].GetString().Should().Be("1.0");
+            evnt.ExtensionAttributes["eventTypeVersion"].Value<string>().Should().Be("1.0");
 
             evnt.ExtensionAttributes.Should().ContainKey("comExampleExtension");
-            evnt.ExtensionAttributes["comExampleExtension"].GetString().Should().Be("value");
+            evnt.ExtensionAttributes["comExampleExtension"].Value<string>().Should().Be("value");
 
             JsonCloudEvent jsonEvnt = (JsonCloudEvent)evnt;
-            jsonEvnt.Data.Value.ValueKind.Should().Be(JsonValueKind.Array);
-            var arrayLength = jsonEvnt.Data.Value.GetArrayLength();
+            jsonEvnt.Data.Should().BeAssignableTo<JArray>();
+            JArray data = (JArray)jsonEvnt.Data;
 
-            arrayLength.Should().Be(6);
+            data.Should().HaveCount(6);
         }
 
         [Theory]
@@ -167,7 +168,7 @@ namespace Rixian.CloudEvents.Tests.V10
         public void CustomEvent(string fileName)
         {
             var json = File.ReadAllText($@"./V10Tests/samples/custom/{fileName}");
-            TestCloudEvent evnt = JsonSerializer.Deserialize<TestCloudEvent>(json);
+            TestCloudEvent evnt = JsonConvert.DeserializeObject<TestCloudEvent>(json);
 
             evnt.Should().NotBeNull();
             evnt.Should().BeOfType<TestCloudEvent>();
@@ -182,10 +183,10 @@ namespace Rixian.CloudEvents.Tests.V10
             evnt.Should().NotBeNull();
             evnt.Should().BeOfType<BinaryCloudEvent>();
 
-            var jobj = JsonSerializer.SerializeToElement(evnt);
+            var jobj = JObject.FromObject(evnt);
 
             // Can explicitly deserialize to binary
-            BinaryCloudEvent evnt2 = jobj.Deserialize<BinaryCloudEvent>();
+            BinaryCloudEvent evnt2 = jobj.ToObject<BinaryCloudEvent>();
             evnt2.Should().NotBeNull();
             evnt2.Data.Should().NotBeNull();
 
@@ -194,7 +195,7 @@ namespace Rixian.CloudEvents.Tests.V10
             evnt3.Should().NotBeNull();
             evnt3.Should().BeOfType<BinaryCloudEvent>();
 
-            CloudEvent evnt4 = JsonSerializer.Deserialize<CloudEvent>(jobj.ToString());
+            CloudEvent evnt4 = JsonConvert.DeserializeObject<CloudEvent>(jobj.ToString());
             evnt4.Should().NotBeNull();
             evnt4.Should().BeOfType<BinaryCloudEvent>();
         }
@@ -207,10 +208,10 @@ namespace Rixian.CloudEvents.Tests.V10
             evnt.Should().NotBeNull();
             evnt.Should().BeOfType<BinaryCloudEvent>();
 
-            var jobj = JsonSerializer.SerializeToElement(evnt);
+            var jobj = JObject.FromObject(evnt);
 
             // Can explicitly deserialize to binary even without data present
-            BinaryCloudEvent evnt2 = jobj.Deserialize<BinaryCloudEvent>();
+            BinaryCloudEvent evnt2 = jobj.ToObject<BinaryCloudEvent>();
             evnt2.Should().NotBeNull();
             evnt2.Data.Should().BeNull();
 
@@ -219,7 +220,7 @@ namespace Rixian.CloudEvents.Tests.V10
             evnt3.Should().NotBeNull();
             evnt3.Should().BeOfType<CloudEvent>();
 
-            CloudEvent evnt4 = JsonSerializer.Deserialize<CloudEvent>(jobj.ToString());
+            CloudEvent evnt4 = JsonConvert.DeserializeObject<CloudEvent>(jobj.ToString());
             evnt4.Should().NotBeNull();
             evnt4.Should().BeOfType<CloudEvent>();
         }
@@ -229,7 +230,7 @@ namespace Rixian.CloudEvents.Tests.V10
         public void CustomBinaryEvent_Success(string fileName)
         {
             var json = File.ReadAllText($@"./V10Tests/samples/custom/{fileName}");
-            TestBinaryEvent evnt = JsonSerializer.Deserialize<TestBinaryEvent>(json);
+            TestBinaryEvent evnt = JsonConvert.DeserializeObject<TestBinaryEvent>(json);
 
             evnt.Should().NotBeNull();
             evnt.Should().BeOfType<TestBinaryEvent>();
@@ -253,7 +254,7 @@ namespace Rixian.CloudEvents.Tests.V10
 
             evnt.Data.Length.Should().Be(data.Length);
 
-            var json = JsonSerializer.Serialize(evnt);
+            var json = JsonConvert.SerializeObject(evnt, Formatting.Indented);
         }
     }
 }
