@@ -13,11 +13,13 @@ namespace Rixian.CloudEvents
     public class BinaryCloudEventV0_2 : CloudEventV0_2
     {
 #pragma warning disable CA1819 // Properties should not return arrays
+#pragma warning disable SA1011 // Closing square brackets should be spaced correctly
         /// <summary>
         /// Gets or sets the binary payload.
         /// </summary>
         [JsonProperty("data", NullValueHandling = NullValueHandling.Ignore, DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate, Order = int.MinValue + 7)]
         public byte[]? Data { get; set; }
+#pragma warning restore SA1011 // Closing square brackets should be spaced correctly
 #pragma warning restore CA1819 // Properties should not return arrays
     }
 }

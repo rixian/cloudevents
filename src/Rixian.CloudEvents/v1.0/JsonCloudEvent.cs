@@ -14,7 +14,6 @@ namespace Rixian.CloudEvents
         /// <summary>
         /// Gets or sets the JSON payload.
         /// </summary>
-        // *** [JsonRequired]
         [JsonPropertyName("data")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public JsonElement Data { get; set; }

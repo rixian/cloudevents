@@ -14,6 +14,7 @@ namespace Rixian.CloudEvents
     /// <summary>
     /// A basic CloudEvent.
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.SpacingRules", "SA1011:Closing square brackets should be spaced correctly", Justification = "Need to fix this for nullable array types.")]
     [JsonConverter(typeof(CloudEventJsonConverter))]
     public class CloudEvent : ICloudEvent
     {

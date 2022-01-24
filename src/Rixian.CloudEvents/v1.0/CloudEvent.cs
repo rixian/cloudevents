@@ -14,7 +14,7 @@ namespace Rixian.CloudEvents
     /// <summary>
     /// A basic CloudEvent.
     /// </summary>
-    //[JsonConverter(typeof(CloudEventJsonConverter))]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.SpacingRules", "SA1011:Closing square brackets should be spaced correctly", Justification = "Need to fix this for nullable array types.")]
     public class CloudEvent : ICloudEvent
     {
         private const string RFC3339RegexPattern = @"^([0-9]+)-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])[Tt]([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(\.[0-9]+)?(([Zz])|([\+|\-]([01][0-9]|2[0-3]):[0-5][0-9]))$";
@@ -226,7 +226,7 @@ namespace Rixian.CloudEvents
                     result = false;
                     errors.Add("Required field 'source' must contain a value.");
                 }
-                else if (Uri.TryCreate(sourceProp.GetString(), UriKind.RelativeOrAbsolute, out Uri sourceUri) == false)
+                else if (Uri.TryCreate(sourceProp.GetString(), UriKind.RelativeOrAbsolute, out Uri? sourceUri) == false)
                 {
                     result = false;
                     errors.Add("Required field 'source' must contain a valid Uri.");
@@ -262,7 +262,7 @@ namespace Rixian.CloudEvents
                         result = false;
                         errors.Add("Optional field 'time' is present and therefore must contain a value.");
                     }
-                    else if (rfc3339Regex.IsMatch(timeProp.GetString()) == false)
+                    else if (rfc3339Regex.IsMatch(timeProp.GetString() !) == false)
                     {
                         result = false;
                         errors.Add("Optional field 'time' must adhere to the format specified in RFC 3339.");
@@ -283,7 +283,7 @@ namespace Rixian.CloudEvents
                         result = false;
                         errors.Add("Optional field 'dataschema' is present and therefore must contain a value.");
                     }
-                    else if (Uri.TryCreate(dataSchemaProp.GetString(), UriKind.RelativeOrAbsolute, out Uri schemaUri) == false)
+                    else if (Uri.TryCreate(dataSchemaProp.GetString(), UriKind.RelativeOrAbsolute, out Uri? schemaUri) == false)
                     {
                         result = false;
                         errors.Add("Optional field 'dataschema' must contain a valid Uri.");
@@ -304,7 +304,7 @@ namespace Rixian.CloudEvents
                         result = false;
                         errors.Add("Optional field 'datacontenttype' must contain a value.");
                     }
-                    else if (rfc2046Regex.IsMatch(dataContentTypeProp.GetString()) == false)
+                    else if (rfc2046Regex.IsMatch(dataContentTypeProp.GetString() !) == false)
                     {
                         result = false;
                         errors.Add("Optional field 'datacontenttype' must adhere to the format specified in RFC 2046.");
@@ -360,7 +360,7 @@ namespace Rixian.CloudEvents
         /// </summary>
         /// <param name="json">The JSON to deserialize.</param>
         /// <returns>A cloud event.</returns>
-        public static CloudEvent Deserialize(string json)
+        public static CloudEvent? Deserialize(string json)
         {
             if (json == null)
             {
@@ -381,7 +381,7 @@ namespace Rixian.CloudEvents
         /// </summary>
         /// <param name="jobj">The JsonElement to deserialize.</param>
         /// <returns>A cloud event.</returns>
-        public static CloudEvent Deserialize(JsonElement jobj)
+        public static CloudEvent? Deserialize(JsonElement jobj)
         {
             if (jobj.TryGetProperty("specversion", out JsonElement specversion))
             {
@@ -400,7 +400,7 @@ namespace Rixian.CloudEvents
         /// </summary>
         /// <param name="json">The JSON to deserialize.</param>
         /// <returns>A cloud event.</returns>
-        public static ICloudEvent DeserializeAny(string json)
+        public static ICloudEvent? DeserializeAny(string json)
         {
             if (json == null)
             {
@@ -421,7 +421,7 @@ namespace Rixian.CloudEvents
         /// </summary>
         /// <param name="jobj">The JsonElement to deserialize.</param>
         /// <returns>A cloud event.</returns>
-        public static ICloudEvent DeserializeAny(JsonElement jobj)
+        public static ICloudEvent? DeserializeAny(JsonElement jobj)
         {
             if (jobj.TryGetProperty("specversion", out JsonElement specversion))
             {
@@ -597,7 +597,7 @@ namespace Rixian.CloudEvents
         {
             if (jobj.TryGetProperty("data", out JsonElement data))
             {
-                var dataContentType = jobj.GetProperty("datacontenttype").GetString().Trim();
+                var dataContentType = jobj.GetProperty("datacontenttype").GetString()?.Trim();
 
                 // SPEC: Section 3.1 - Paragraph 3
                 // https://github.com/cloudevents/spec/blob/v0.1/json-format.md#31-special-handling-of-the-data-attribute
@@ -608,7 +608,7 @@ namespace Rixian.CloudEvents
                 else
                 {
                     var dataString = data.GetString();
-                    if (base64Regex.IsMatch(dataString))
+                    if (base64Regex.IsMatch(dataString ?? string.Empty))
                     {
                         return typeof(BinaryCloudEvent);
                     }
@@ -622,7 +622,7 @@ namespace Rixian.CloudEvents
             return typeof(CloudEvent);
         }
 
-        private static CloudEvent DeserializeLatest(JsonElement jobj)
+        private static CloudEvent? DeserializeLatest(JsonElement jobj)
         {
             Type actualType = GetEventType(jobj);
 

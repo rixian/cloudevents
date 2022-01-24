@@ -61,16 +61,11 @@ namespace Rixian.CloudEvents
         /// </summary>
         /// <param name="token">The JsonElement.</param>
         /// <returns>The dictionary.</returns>
-        public static IDictionary<string, JsonProperty>? AsDictionary(this JsonElement? token)
+        public static IDictionary<string, JsonProperty>? AsDictionary(this JsonElement token)
         {
-            if (token is null)
+            if (token.ValueKind == JsonValueKind.Object)
             {
-                throw new ArgumentNullException(nameof(token));
-            }
-
-            if (token?.ValueKind == JsonValueKind.Object)
-            {
-                return token.Value.EnumerateObject().ToDictionary(p => p.Name);
+                return token.EnumerateObject().ToDictionary(p => p.Name);
             }
 
             return null;

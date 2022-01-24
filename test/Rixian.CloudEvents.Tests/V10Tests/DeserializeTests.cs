@@ -41,8 +41,8 @@ namespace Rixian.CloudEvents.Tests.V10
             evnt.Type.Should().Be("com.example.someevent");
 
             JsonCloudEvent jsonEvnt = (JsonCloudEvent)evnt;
-            jsonEvnt.Data.Value.ValueKind.Should().Be(JsonValueKind.Object);
-            var data = jsonEvnt.Data.AsDictionary();
+            jsonEvnt.Data.ValueKind.Should().Be(JsonValueKind.Object);
+            System.Collections.Generic.IDictionary<string, JsonProperty> data = jsonEvnt.Data.AsDictionary();
 
             data.Should().ContainKey("appinfoA");
             data["appinfoA"].Value.GetString().Should().Be("abc");
@@ -76,8 +76,8 @@ namespace Rixian.CloudEvents.Tests.V10
             evnt.ExtensionAttributes["comExampleExtension"].GetString().Should().Be("value");
 
             JsonCloudEvent jsonEvnt = (JsonCloudEvent)evnt;
-            jsonEvnt.Data.Value.ValueKind.Should().Be(JsonValueKind.Object);
-            var data = jsonEvnt.Data.AsDictionary();
+            jsonEvnt.Data.ValueKind.Should().Be(JsonValueKind.Object);
+            System.Collections.Generic.IDictionary<string, JsonProperty> data = jsonEvnt.Data.AsDictionary();
 
             data.Should().ContainKey("appinfoA");
             data["appinfoA"].Value.GetString().Should().Be("abc");
@@ -105,8 +105,8 @@ namespace Rixian.CloudEvents.Tests.V10
             evnt.Type.Should().Be("com.example.someevent");
 
             JsonCloudEvent jsonEvnt = (JsonCloudEvent)evnt;
-            jsonEvnt.Data.Value.ValueKind.Should().Be(JsonValueKind.Array);
-            var arrayLength = jsonEvnt.Data.Value.GetArrayLength();
+            jsonEvnt.Data.ValueKind.Should().Be(JsonValueKind.Array);
+            var arrayLength = jsonEvnt.Data.GetArrayLength();
 
             arrayLength.Should().Be(6);
         }
@@ -133,8 +133,8 @@ namespace Rixian.CloudEvents.Tests.V10
             evnt.ExtensionAttributes["comExampleExtension"].GetString().Should().Be("value");
 
             JsonCloudEvent jsonEvnt = (JsonCloudEvent)evnt;
-            jsonEvnt.Data.Value.ValueKind.Should().Be(JsonValueKind.Array);
-            var arrayLength = jsonEvnt.Data.Value.GetArrayLength();
+            jsonEvnt.Data.ValueKind.Should().Be(JsonValueKind.Array);
+            var arrayLength = jsonEvnt.Data.GetArrayLength();
 
             arrayLength.Should().Be(6);
         }
@@ -182,7 +182,7 @@ namespace Rixian.CloudEvents.Tests.V10
             evnt.Should().NotBeNull();
             evnt.Should().BeOfType<BinaryCloudEvent>();
 
-            var jobj = JsonSerializer.SerializeToElement(evnt);
+            JsonElement jobj = JsonSerializer.SerializeToElement(evnt);
 
             // Can explicitly deserialize to binary
             BinaryCloudEvent evnt2 = jobj.Deserialize<BinaryCloudEvent>();
@@ -207,7 +207,7 @@ namespace Rixian.CloudEvents.Tests.V10
             evnt.Should().NotBeNull();
             evnt.Should().BeOfType<BinaryCloudEvent>();
 
-            var jobj = JsonSerializer.SerializeToElement(evnt);
+            JsonElement jobj = JsonSerializer.SerializeToElement(evnt);
 
             // Can explicitly deserialize to binary even without data present
             BinaryCloudEvent evnt2 = jobj.Deserialize<BinaryCloudEvent>();
