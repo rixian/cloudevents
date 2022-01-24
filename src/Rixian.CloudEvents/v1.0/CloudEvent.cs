@@ -15,7 +15,7 @@ namespace Rixian.CloudEvents
     /// A basic CloudEvent.
     /// </summary>
     [JsonConverter(typeof(CloudEventJsonConverter))]
-    public class CloudEvent
+    public class CloudEvent : ICloudEvent
     {
         private const string RFC3339RegexPattern = @"^([0-9]+)-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])[Tt]([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(\.[0-9]+)?(([Zz])|([\+|\-]([01][0-9]|2[0-3]):[0-5][0-9]))$";
 
@@ -94,7 +94,7 @@ namespace Rixian.CloudEvents
         /// </summary>
         [JsonExtensionData]
 #pragma warning disable CA2227 // Collection properties should be read only
-        public Dictionary<string, JToken>? ExtensionAttributes { get; set; }
+        public IDictionary<string, JToken?>? ExtensionAttributes { get; set; }
 #pragma warning restore CA2227 // Collection properties should be read only
 
         /// <summary>
@@ -420,10 +420,168 @@ namespace Rixian.CloudEvents
                 throw new ArgumentNullException(nameof(jobj));
             }
 
-            Type actualType = GetEventType(jobj);
-            var cloudEvent = (CloudEvent)Activator.CreateInstance(actualType);
-            JsonConvert.PopulateObject(jobj.ToString(), cloudEvent);
-            return cloudEvent;
+            if (jobj.TryGetValue("specversion", out JToken specversion))
+            {
+                if (string.Equals(specversion.ToString(), "1.0", StringComparison.OrdinalIgnoreCase))
+                {
+                    return DeserializeLatest(jobj);
+                }
+                else if (string.Equals(specversion.ToString(), "0.2", StringComparison.OrdinalIgnoreCase))
+                {
+#pragma warning disable CS0618 // Type or member is obsolete
+                    CloudEventV0_2? cloudEvent02 = CloudEventV0_2.Deserialize(jobj);
+
+                    CloudEvent? cloudEvent = null;
+                    switch (cloudEvent02)
+                    {
+                        case BinaryCloudEventV0_2 bce02:
+                            cloudEvent = new BinaryCloudEvent
+                            {
+                                Data = bce02.Data,
+                            };
+                            break;
+                        case JsonCloudEventV0_2 jce02:
+                            cloudEvent = new JsonCloudEvent
+                            {
+                                Data = jce02.Data,
+                            };
+                            break;
+                        case StringCloudEventV0_2 sce02:
+                            cloudEvent = new StringCloudEvent
+                            {
+                                Data = sce02.Data,
+                            };
+                            break;
+                        default:
+                            cloudEvent = new CloudEvent();
+                            break;
+                    }
+#pragma warning restore CS0618 // Type or member is obsolete
+
+                    cloudEvent.Id = cloudEvent02.Id;
+                    cloudEvent.DataContentType = cloudEvent02.ContentType;
+                    cloudEvent.DataSchema = cloudEvent02.SchemaUrl;
+                    cloudEvent.Source = cloudEvent02.Source;
+                    cloudEvent.Time = cloudEvent02.Time;
+                    cloudEvent.Type = cloudEvent02.Type;
+                    cloudEvent.Subject = cloudEvent02.ExtensionAttributes?.TryGetRemoveValue("subject")?.ToString();
+                    cloudEvent.ExtensionAttributes = cloudEvent02.ExtensionAttributes;
+
+                    return cloudEvent;
+                }
+            }
+
+            if (jobj.TryGetValue("cloudEventsVersion", out JToken cloudEventsVersion))
+            {
+                if (string.Equals(cloudEventsVersion.ToString(), "0.1", StringComparison.OrdinalIgnoreCase))
+                {
+#pragma warning disable CS0618 // Type or member is obsolete
+                    CloudEventV0_1? cloudEvent01 = CloudEventV0_1.Deserialize(jobj);
+
+                    CloudEvent? cloudEvent = null;
+                    switch (cloudEvent01)
+                    {
+                        case BinaryCloudEventV0_1 bce01:
+                            cloudEvent = new BinaryCloudEvent
+                            {
+                                Data = bce01.Data,
+                            };
+                            break;
+                        case JsonCloudEventV0_1 jce01:
+                            cloudEvent = new JsonCloudEvent
+                            {
+                                Data = jce01.Data,
+                            };
+                            break;
+                        case StringCloudEventV0_1 sce01:
+                            cloudEvent = new StringCloudEvent
+                            {
+                                Data = sce01.Data,
+                            };
+                            break;
+                        default:
+                            cloudEvent = new CloudEvent();
+                            break;
+                    }
+#pragma warning restore CS0618 // Type or member is obsolete
+
+                    cloudEvent.Id = cloudEvent01.EventId;
+                    cloudEvent.DataContentType = cloudEvent01.ContentType;
+                    cloudEvent.DataSchema = cloudEvent01.SchemaUrl;
+                    cloudEvent.Source = cloudEvent01.Source;
+                    cloudEvent.Time = cloudEvent01.EventTime;
+                    cloudEvent.Type = cloudEvent01.EventType;
+                    cloudEvent.ExtensionAttributes = cloudEvent01.Extensions?.AsDictionary();
+                    cloudEvent.ExtensionAttributes?.AddValue("eventTypeVersion", cloudEvent01.EventTypeVersion);
+                    cloudEvent.Subject = cloudEvent.ExtensionAttributes?.TryGetRemoveValue("subject")?.ToString();
+
+                    return cloudEvent;
+                }
+            }
+
+            // Unknown spec version. Attempting to deserialize to the latest.
+            return DeserializeLatest(jobj);
+        }
+
+        /// <summary>
+        /// Deserializes a JSON string into a cloud event.
+        /// </summary>
+        /// <param name="json">The JSON to deserialize.</param>
+        /// <returns>A cloud event.</returns>
+        public static ICloudEvent DeserializeAny(string json)
+        {
+            if (json == null)
+            {
+                throw new ArgumentNullException(nameof(json));
+            }
+
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                throw new ArgumentOutOfRangeException(nameof(json), Properties.Resources.NullOrEmptyStringExceptionMessage);
+            }
+
+            var jobj = JObject.Parse(json);
+            return DeserializeAny(jobj);
+        }
+
+        /// <summary>
+        /// Deserializes a JObject into a cloud event.
+        /// </summary>
+        /// <param name="jobj">The JObject to deserialize.</param>
+        /// <returns>A cloud event.</returns>
+        public static ICloudEvent DeserializeAny(JObject jobj)
+        {
+            if (jobj == null)
+            {
+                throw new ArgumentNullException(nameof(jobj));
+            }
+
+            if (jobj.TryGetValue("specversion", out JToken specversion))
+            {
+                if (string.Equals(specversion.ToString(), "1.0", StringComparison.OrdinalIgnoreCase))
+                {
+                    return DeserializeLatest(jobj);
+                }
+                else if (string.Equals(specversion.ToString(), "0.2", StringComparison.OrdinalIgnoreCase))
+                {
+#pragma warning disable CS0618 // Type or member is obsolete
+                    return CloudEventV0_2.Deserialize(jobj);
+#pragma warning restore CS0618 // Type or member is obsolete
+                }
+            }
+
+            if (jobj.TryGetValue("cloudEventsVersion", out JToken cloudEventsVersion))
+            {
+                if (string.Equals(cloudEventsVersion.ToString(), "0.1", StringComparison.OrdinalIgnoreCase))
+                {
+#pragma warning disable CS0618 // Type or member is obsolete
+                    return CloudEventV0_1.Deserialize(jobj);
+#pragma warning restore CS0618 // Type or member is obsolete
+                }
+            }
+
+            // Unknown spec version. Attempting to deserialize to the latest.
+            return DeserializeLatest(jobj);
         }
 
         /// <summary>
@@ -616,6 +774,19 @@ namespace Rixian.CloudEvents
             }
 
             return typeof(CloudEvent);
+        }
+
+        private static CloudEvent DeserializeLatest(JObject jobj)
+        {
+            if (jobj == null)
+            {
+                throw new ArgumentNullException(nameof(jobj));
+            }
+
+            Type actualType = GetEventType(jobj);
+            var cloudEvent = (CloudEvent)Activator.CreateInstance(actualType);
+            JsonConvert.PopulateObject(jobj.ToString(), cloudEvent);
+            return cloudEvent;
         }
     }
 }

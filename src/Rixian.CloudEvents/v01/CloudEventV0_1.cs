@@ -13,7 +13,7 @@ namespace Rixian.CloudEvents
     /// A basic CloudEvent.
     /// </summary>
     [Obsolete("Use the latest version of CloudEvents.")]
-    public class CloudEventV0_1
+    public class CloudEventV0_1 : ICloudEvent
     {
         private const string JsonMimeType = "application/json";
         private const string PlainTextMimeType = "text/plain";
@@ -80,6 +80,30 @@ namespace Rixian.CloudEvents
         [JsonProperty("extensions", NullValueHandling = NullValueHandling.Ignore, DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public JToken Extensions { get; set; }
 
+#pragma warning disable CS8632 // The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
+#pragma warning disable CA1033 // Interface methods should be callable by child types
+        /// <inheritdoc/>
+        string? ICloudEvent.Id
+        {
+            get => this.EventId;
+            set => this.EventId = value;
+        }
+
+        /// <inheritdoc/>
+        string ICloudEvent.SpecVersion
+        {
+            get => this.CloudEventsVersion;
+        }
+
+        /// <inheritdoc/>
+        string? ICloudEvent.Type
+        {
+            get => this.EventType;
+            set => this.EventType = value;
+        }
+#pragma warning restore CA1033 // Interface methods should be callable by child types
+#pragma warning restore CS8632 // The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
+
         /// <summary>
         /// Deserializes a JSON string into a cloud event.
         /// </summary>
@@ -98,6 +122,21 @@ namespace Rixian.CloudEvents
             }
 
             var jobj = JObject.Parse(json);
+            return Deserialize(jobj);
+        }
+
+        /// <summary>
+        /// Deserializes a JObject into a cloud event.
+        /// </summary>
+        /// <param name="jobj">The JObject to deserialize.</param>
+        /// <returns>A cloud event.</returns>
+        public static CloudEventV0_1 Deserialize(JObject jobj)
+        {
+            if (jobj == null)
+            {
+                throw new ArgumentNullException(nameof(jobj));
+            }
+
             if (!jobj.ContainsKey("data"))
             {
                 return jobj.ToObject<CloudEventV0_1>();

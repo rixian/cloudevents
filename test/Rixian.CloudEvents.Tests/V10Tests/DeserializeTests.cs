@@ -26,6 +26,120 @@ namespace Rixian.CloudEvents.Tests.V10
             evnt.Should().BeOfType<JsonCloudEvent>();
         }
 
+        [Fact]
+        public void Json_V02_File01()
+        {
+            var json = File.ReadAllText($@"./V02Tests/samples/json/json1.json");
+            CloudEvent evnt = CloudEvent.Deserialize(json);
+
+            evnt.Should().BeOfType<JsonCloudEvent>();
+            evnt.DataContentType.Should().Be("application/json");
+            evnt.DataSchema.Should().BeNull();
+            evnt.Id.Should().Be("C234-1234-1234");
+            evnt.Source.Should().Be("/mycontext");
+            evnt.Subject.Should().BeNull();
+            evnt.Time.Should().Be(new DateTimeOffset(2018, 04, 05, 17, 31, 00, TimeSpan.Zero));
+            evnt.Type.Should().Be("com.example.someevent");
+
+            JsonCloudEvent jsonEvnt = (JsonCloudEvent)evnt;
+            jsonEvnt.Data.Should().BeAssignableTo<JObject>();
+            JObject data = (JObject)jsonEvnt.Data;
+
+            data.Should().ContainKey("appinfoA");
+            data["appinfoA"].Value<string>().Should().Be("abc");
+
+            data.Should().ContainKey("appinfoB");
+            data["appinfoB"].Value<int>().Should().Be(123);
+
+            data.Should().ContainKey("appinfoC");
+            data["appinfoC"].Value<bool>().Should().Be(true);
+        }
+
+        [Fact]
+        public void Json_V01_File01()
+        {
+            var json = File.ReadAllText($@"./V01Tests/samples/json/json1.json");
+            CloudEvent evnt = CloudEvent.Deserialize(json);
+
+            evnt.Should().BeOfType<JsonCloudEvent>();
+            evnt.DataContentType.Should().Be("application/json");
+            evnt.DataSchema.Should().BeNull();
+            evnt.Id.Should().Be("C234-1234-1234");
+            evnt.Source.Should().Be("/mycontext");
+            evnt.Subject.Should().BeNull();
+            evnt.Time.Should().Be(new DateTimeOffset(2018, 04, 05, 17, 31, 00, TimeSpan.Zero));
+            evnt.Type.Should().Be("com.example.someevent");
+
+            evnt.ExtensionAttributes.Should().ContainKey("eventTypeVersion");
+            evnt.ExtensionAttributes["eventTypeVersion"].Value<string>().Should().Be("1.0");
+
+            evnt.ExtensionAttributes.Should().ContainKey("comExampleExtension");
+            evnt.ExtensionAttributes["comExampleExtension"].Value<string>().Should().Be("value");
+
+            JsonCloudEvent jsonEvnt = (JsonCloudEvent)evnt;
+            jsonEvnt.Data.Should().BeAssignableTo<JObject>();
+            JObject data = (JObject)jsonEvnt.Data;
+
+            data.Should().ContainKey("appinfoA");
+            data["appinfoA"].Value<string>().Should().Be("abc");
+
+            data.Should().ContainKey("appinfoB");
+            data["appinfoB"].Value<int>().Should().Be(123);
+
+            data.Should().ContainKey("appinfoC");
+            data["appinfoC"].Value<bool>().Should().Be(true);
+        }
+
+        [Fact]
+        public void Json_V02_File02()
+        {
+            var json = File.ReadAllText($@"./V02Tests/samples/json/json2.json");
+            CloudEvent evnt = CloudEvent.Deserialize(json);
+
+            evnt.Should().BeOfType<JsonCloudEvent>();
+            evnt.DataContentType.Should().Be("application/json");
+            evnt.DataSchema.Should().BeNull();
+            evnt.Id.Should().Be("C234-1234-1234");
+            evnt.Source.Should().Be("/mycontext");
+            evnt.Subject.Should().BeNull();
+            evnt.Time.Should().Be(new DateTimeOffset(2018, 04, 05, 17, 31, 00, TimeSpan.Zero));
+            evnt.Type.Should().Be("com.example.someevent");
+
+            JsonCloudEvent jsonEvnt = (JsonCloudEvent)evnt;
+            jsonEvnt.Data.Should().BeAssignableTo<JArray>();
+            JArray data = (JArray)jsonEvnt.Data;
+
+            data.Should().HaveCount(6);
+        }
+
+        [Fact]
+        public void Json_V01_File02()
+        {
+            var json = File.ReadAllText($@"./V01Tests/samples/json/json2.json");
+            CloudEvent evnt = CloudEvent.Deserialize(json);
+
+            evnt.Should().BeOfType<JsonCloudEvent>();
+            evnt.DataContentType.Should().Be("application/json");
+            evnt.DataSchema.Should().BeNull();
+            evnt.Id.Should().Be("C234-1234-1234");
+            evnt.Source.Should().Be("/mycontext");
+            evnt.Subject.Should().BeNull();
+            evnt.Time.Should().Be(new DateTimeOffset(2018, 04, 05, 17, 31, 00, TimeSpan.Zero));
+            evnt.Type.Should().Be("com.example.someevent");
+
+            evnt.ExtensionAttributes.Should().ContainKey("eventTypeVersion");
+            evnt.ExtensionAttributes["eventTypeVersion"].Value<string>().Should().Be("1.0");
+
+            evnt.ExtensionAttributes.Should().ContainKey("comExampleExtension");
+            evnt.ExtensionAttributes["comExampleExtension"].Value<string>().Should().Be("value");
+
+            JsonCloudEvent jsonEvnt = (JsonCloudEvent)evnt;
+            jsonEvnt.Data.Should().BeAssignableTo<JArray>();
+            JArray data = (JArray)jsonEvnt.Data;
+
+            data.Should().HaveCount(6);
+        }
+
         [Theory]
         [InlineData("string1.json")]
         public void TestStringFilesV02(string fileName)

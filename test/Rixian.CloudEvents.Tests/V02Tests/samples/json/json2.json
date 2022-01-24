@@ -1,5 +1,5 @@
 ﻿{
-  "specversion": "0.1",
+  "specversion": "0.2",
   "type": "com.example.someevent",
   "source": "/mycontext",
   "id": "C234-1234-1234",
